@@ -1,0 +1,16 @@
+services:
+  ur10_sim:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: ur10_gz:latest
+    environment:
+      DISPLAY: ${DISPLAY:-:0}
+      QT_X11_NO_MITSHM: 1
+      XAUTHORITY: ${XAUTHORITY:-${HOME}/.Xauthority}
+      # Set GZ_GUI=false to run headless (no Gazebo window) when X11 is not available
+      GZ_GUI: ${GZ_GUI:-true}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    network_mode: host
+    command: ["ros2", "launch", "ur10_gz_bringup", "ur10_gz_bringup.launch.py"]
