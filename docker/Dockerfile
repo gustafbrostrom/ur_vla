@@ -26,12 +26,17 @@ RUN apt-get update && apt-get upgrade -y \
     ros-jazzy-gz-ros2-control \
     ros-jazzy-gz-ros2-control-demos \
     ros-jazzy-ros-gz \
+    ros-jazzy-ros-gz-image \
     ros-jazzy-xacro \
     ros-jazzy-robot-state-publisher \
     ros-jazzy-joint-state-publisher \
     python3-colcon-common-extensions \
     python3-rosdep \
     git \
+    mesa-utils \
+    libgl1-mesa-dri \
+    libglx-mesa0 \
+    mesa-vulkan-drivers \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root user and workspace (UID 1001; 1000 often taken in base image)

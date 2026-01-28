@@ -89,11 +89,31 @@ def generate_launch_description():
         arguments=["joint_trajectory_controller", "--param-file", robot_controllers],
     )
 
-    # Clock bridge for /clock (sim time)
+    # Clock bridge and wrist camera CameraInfo bridge (Gazebo -> ROS 2)
+    gz_camera_info = "/model/ur10/link/wrist_camera_link/sensor/wrist_camera/camera_info"
     clock_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
-        arguments=["/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock"],
+        arguments=[
+            "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
+            f"{gz_camera_info}@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo",
+        ],
+        remappings=[
+            (gz_camera_info, "/wrist_camera/camera_info"),
+        ],
+        output="screen",
+    )
+
+    # Wrist camera image bridge (Gazebo -> ROS 2). Gazebo publishes the camera to /image.
+    # image_bridge subscribes to the Gazebo topic and publishes to ROS under the same name;
+    # remap the ROS publisher so rqt_image_view / RViz see /wrist_camera/image_raw.
+    gz_image_topic = "/image"
+    wrist_camera_image_bridge = Node(
+        package="ros_gz_image",
+        executable="image_bridge",
+        arguments=[gz_image_topic],
+        remappings=[(gz_image_topic, "/wrist_camera/image_raw")],
+        parameters=[{"use_sim_time": use_sim_time, "qos": "default"}],
         output="screen",
     )
 
@@ -101,6 +121,7 @@ def generate_launch_description():
         DeclareLaunchArgument("use_sim_time", default_value=use_sim_time, description="Use sim time"),
         gz_sim_launch,
         clock_bridge,
+        wrist_camera_image_bridge,
         node_robot_state_publisher,
         gz_spawn_entity,
         RegisterEventHandler(

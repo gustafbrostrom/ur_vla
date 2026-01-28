@@ -120,6 +120,36 @@ If the gz_ros2_control plugin fails to load or the robot does not move:
 3. **Joint names:** The `<ros2_control>` joint names must match `controllers.yaml` and the URDF: `shoulder_pan_joint`, `shoulder_lift_joint`, `elbow_joint`, `wrist_1_joint`, `wrist_2_joint`, `wrist_3_joint`.
 4. **Spawn order:** Controllers are spawned in order: first `joint_state_broadcaster`, then `joint_trajectory_controller`. If the trajectory controller is not active, check that both spawners ran (see launch logs).
 
+### Gazebo not starting / nothing spawned (MESA, DRM, iris driver)
+
+- **Cause:** In Docker (or without GPU passthrough), the Gazebo server may fail to use the GPU and never advertise `/world/default/create`, so the robot never spawns. You may see: `MESA: error: Failed to query drm device`, `failed to load driver: iris`, and `Waiting for service [/world/default/create]`.
+- **Fix:** The compose file sets `LIBGL_ALWAYS_SOFTWARE=1` so Gazebo uses software OpenGL and can start without a real GPU. If you run the launch outside Docker and hit similar errors, set `export LIBGL_ALWAYS_SOFTWARE=1` before launching.
+
+## Wrist Camera
+
+A wrist-mounted RGB camera is attached to the UR10 tool flange (`tool0`) and publishes images to ROS 2.
+
+### Topic names
+
+- **Image:** `/wrist_camera/image_raw` (`sensor_msgs/msg/Image`)
+- **CameraInfo:** `/wrist_camera/camera_info` (`sensor_msgs/msg/CameraInfo`)
+
+### Frame names
+
+- **TF:** `tool0` → `wrist_camera_link` (fixed joint, 2 cm along tool0 Z+ forward).
+- **Image/CameraInfo header:** `frame_id` is `wrist_camera_link`.
+
+### How to visualize the image
+
+- **rqt_image_view:** Run `rqt_image_view` and select `/wrist_camera/image_raw`.
+- **RViz:** Add an “Image” display and set the topic to `/wrist_camera/image_raw`.
+
+### Common troubleshooting (wrist camera)
+
+- **No image / topic not listed:** The world uses the **ogre** render engine (not ogre2) for the Sensors plugin to improve compatibility with software rendering. Two ROS topics are bridged: `/wrist_camera/image_raw` (camera on `wrist_camera_link`) and `/wrist_camera/image_raw_tool0` (camera on `tool0` if the link was lumped). **Check both:** `ros2 topic echo /wrist_camera/image_raw --once` and `ros2 topic echo /wrist_camera/image_raw_tool0 --once`; use whichever has data (e.g. in rqt_image_view). If neither has data, ensure the simulation is playing (Gazebo play button) and list Gazebo topics: `gz topic -l` and look for `.../sensor/wrist_camera/image`. With software rendering, if neither topic ever gets frames, try running without `LIBGL_ALWAYS_SOFTWARE=1` (e.g. GPU passthrough) if you need the camera.
+- **Wrong frame in header:** If you use a `tf_prefix`, the camera link is `${tf_prefix}wrist_camera_link`; ensure your tools use the same prefix. Check `ros2 topic echo /wrist_camera/image_raw --field header`.
+- **Black image:** Check world lighting (directional light in the world). Ensure the simulation is running (play button in Gazebo). The camera uses the `ogre2` render engine; if running headless, the Sensors system may still produce images depending on your setup.
+
 ## References
 
 - [ROS 2 Jazzy](https://docs.ros.org/en/jazzy/index.html)

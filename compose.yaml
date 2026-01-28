@@ -4,12 +4,20 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     image: ur10_gz:latest
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+      - "992"
     environment:
       DISPLAY: ${DISPLAY:-:0}
       QT_X11_NO_MITSHM: 1
       XAUTHORITY: ${XAUTHORITY:-${HOME}/.Xauthority}
       # Set GZ_GUI=false to run headless (no Gazebo window) when X11 is not available
       GZ_GUI: ${GZ_GUI:-true}
+      # Force software OpenGL so Gazebo server starts without GPU/DRM (e.g. in Docker)
+      LIBGL_ALWAYS_SOFTWARE: "0"
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     network_mode: host
