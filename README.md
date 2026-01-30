@@ -76,6 +76,56 @@ docker compose run --rm ur10_sim bash -c "
 
 Or exec into the running container and run the same `ros2 action send_goal` after sourcing the workspace.
 
+## Testing
+
+Integration tests (launch_testing) verify that the robot spawns, the wrist camera publishes images, and the robot moves on a trajectory command. Tests use the environment’s `GZ_GUI` (default true), so with a display and `xhost +local:docker` the Gazebo window may open; they take about 1–2 minutes.
+
+From the repo root, build the image, then run tests inside the container:
+
+```bash
+docker compose build
+docker compose run --rm ur10_sim bash -c "
+  . /opt/ros/jazzy/setup.bash && . /home/ros/ws/install/setup.bash &&
+  colcon test --packages-select ur10_gz_bringup &&
+  colcon test-result --all
+"
+```
+
+To see the test log in the terminal (debug prints, robot start/end positions, image size, etc.), add `--event-handlers console_direct+` so output is streamed instead of captured:
+
+```bash
+docker compose run --rm ur10_sim bash -c "
+  . /opt/ros/jazzy/setup.bash && . /home/ros/ws/install/setup.bash &&
+  colcon test --packages-select ur10_gz_bringup --event-handlers console_direct+
+"
+```
+
+**Test logs to file (read outside the container)**  
+The compose file mounts `./test_logs` into the container at `/home/ros/ws/test_logs`. Easiest: run the script so the directory exists, is writable by the container user, and logs go to the right place:
+
+```bash
+./scripts/run_tests_with_logs.sh
+```
+
+Then open `test_logs/ur10_gz_bringup_test.log` (and `test_logs/Testing/Temporary/LastTest.log`, `test_logs/test_results/` if copied) on your machine. The script creates `test_logs`, sets it world-writable so the container user can write, and uses absolute paths inside the container. The directory `test_logs/` is in `.gitignore`.
+
+Manual run (from repo root; ensure `test_logs` exists and is writable by the container user, e.g. `chmod 777 test_logs`):
+
+```bash
+mkdir -p test_logs && chmod 777 test_logs
+docker compose run --rm ur10_sim bash -c "
+  . /opt/ros/jazzy/setup.bash && . /home/ros/ws/install/setup.bash &&
+  mkdir -p /home/ros/ws/test_logs &&
+  colcon test --packages-select ur10_gz_bringup --event-handlers console_direct+ 2>&1 | tee /home/ros/ws/test_logs/ur10_gz_bringup_test.log &&
+  colcon test-result --all &&
+  cp -r build/ur10_gz_bringup/Testing build/ur10_gz_bringup/test_results /home/ros/ws/test_logs/ 2>/dev/null || true
+"
+```
+
+For headless/CI (no display), set `GZ_GUI=false` before the test, e.g. `GZ_GUI=false docker compose run --rm ur10_sim bash -c "..."`.
+
+To run tests without rebuilding (e.g. after changing only test code), mount the workspace and run the same `colcon test` and `colcon test-result` commands after building the workspace once.
+
 ## Repository structure
 
 ```

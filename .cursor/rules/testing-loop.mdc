@@ -1,0 +1,25 @@
+---
+description: Testing loop for ur_vla — run script, read logs, fix, repeat
+alwaysApply: true
+---
+
+# Testing Loop
+
+When working on or fixing tests in this project, follow this loop:
+
+1. **Run tests**  
+   From repo root:
+   ```bash
+   ./scripts/run_tests_with_logs.sh
+   ```
+
+2. **Read the logs**  
+   Inspect `test_logs/ur10_gz_bringup_test.log` (and, if present, `test_logs/Testing/Temporary/LastTest.log`, `test_logs/test_results/`) to see failures, debug output (image size, robot start/end positions), and CTest/launch_test errors.
+
+3. **Fix the issues**  
+   Change code or config based on what the logs show (e.g. timeout, exit codes, topic names, assertions).
+
+4. **Try again**  
+   Re-run `./scripts/run_tests_with_logs.sh` and re-check `test_logs/` until all tests pass.
+
+Do not assume tests pass without re-running the script and confirming via the log files.

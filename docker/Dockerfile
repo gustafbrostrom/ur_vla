@@ -30,6 +30,9 @@ RUN apt-get update && apt-get upgrade -y \
     ros-jazzy-xacro \
     ros-jazzy-robot-state-publisher \
     ros-jazzy-joint-state-publisher \
+    ros-jazzy-launch-testing \
+    ros-jazzy-launch-testing-ament-cmake \
+    ros-jazzy-ament-cmake-ros \
     python3-colcon-common-extensions \
     python3-rosdep \
     git \
