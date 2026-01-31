@@ -29,11 +29,11 @@
     </collision>
   </link>
 
-  <!-- Fixed joint: tool0 -> wrist_camera_link (2 cm along tool0 Z+ forward) -->
+  <!-- Fixed joint: tool0 -> wrist_camera_link (2 cm along tool0 Z+ forward). Rotate -90° around Y so camera looks forward along tool0 +Z (Gazebo camera looks along +X). -->
   <joint name="${tf_prefix}tool0_wrist_camera_joint" type="fixed">
     <parent link="${tf_prefix}tool0"/>
     <child link="${tf_prefix}wrist_camera_link"/>
-    <origin xyz="0 0 0.02" rpy="0 0 0"/>
+    <origin xyz="0 0 0.02" rpy="0 -1.5708 0"/>
   </joint>
   <!-- Prevent lumping so wrist_camera_link exists in Gazebo and topic path is predictable -->
   <gazebo reference="${tf_prefix}tool0_wrist_camera_joint">

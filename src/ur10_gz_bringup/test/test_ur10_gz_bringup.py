@@ -138,6 +138,34 @@ class TestUr10GzBringup(unittest.TestCase):
         finally:
             self.node.destroy_subscription(sub)
 
+    def test_external_camera_delivers_images(self, proc_output):
+        """Check that /external_camera/image_raw publishes with valid dimensions and data."""
+        msgs = []
+
+        def cb(msg):
+            msgs.append(msg)
+
+        sub = self.node.create_subscription(
+            Image,
+            "/external_camera/image_raw",
+            cb,
+            10,
+        )
+        end_time = time.monotonic() + CAMERA_TIMEOUT
+        try:
+            while time.monotonic() < end_time:
+                rclpy.spin_once(self.node, timeout_sec=1.0)
+                if msgs:
+                    break
+            self.assertGreater(len(msgs), 0, "No /external_camera/image_raw message received")
+            img = msgs[0]
+            self.assertEqual(img.height, 480, "Unexpected image height")
+            self.assertEqual(img.width, 640, "Unexpected image width")
+            self.assertGreater(len(img.data), 0, "Image data is empty")
+            print(f"\n[test] External camera image size: {img.width} x {img.height}, data length: {len(img.data)} bytes")
+        finally:
+            self.node.destroy_subscription(sub)
+
     def _get_joint_positions(self, timeout_sec=5.0):
         """Subscribe to /joint_states and return positions for EXPECTED_JOINT_NAMES (in order)."""
         msgs = []

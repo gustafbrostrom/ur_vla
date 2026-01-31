@@ -1,5 +1,5 @@
 # Test logs (written by container; mount at ./test_logs)
 test_logs/
 
-# Saved images (e.g. from scripts/save_wrist_image.sh)
+# Saved images (e.g. from scripts/save_camera_images.sh)
 output/

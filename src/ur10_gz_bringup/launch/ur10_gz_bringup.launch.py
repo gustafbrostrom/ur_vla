@@ -106,17 +106,21 @@ def generate_launch_description():
         arguments=["gripper_action_controller", "--param-file", robot_controllers],
     )
 
-    # Clock bridge and wrist camera CameraInfo bridge (Gazebo -> ROS 2)
+    # Clock bridge and camera CameraInfo bridges (Gazebo -> ROS 2)
     gz_camera_info = "/model/ur10/link/wrist_camera_link/sensor/wrist_camera/camera_info"
+    # External camera uses world-scoped topic (same as image)
+    gz_external_camera_info = "/world/default/model/external_camera/link/link/sensor/camera/camera_info"
     clock_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
         arguments=[
             "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
             f"{gz_camera_info}@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo",
+            f"{gz_external_camera_info}@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo",
         ],
         remappings=[
             (gz_camera_info, "/wrist_camera/camera_info"),
+            (gz_external_camera_info, "/external_camera/camera_info"),
         ],
         output="screen",
     )
@@ -134,12 +138,25 @@ def generate_launch_description():
         output="screen",
     )
 
+    # External camera image bridge (VLA-style third-person view).
+    # gz-sim scopes sensor topics with world name: /world/default/model/...
+    gz_external_image_topic = "/world/default/model/external_camera/link/link/sensor/camera/image"
+    external_camera_image_bridge = Node(
+        package="ros_gz_image",
+        executable="image_bridge",
+        arguments=[gz_external_image_topic],
+        remappings=[(gz_external_image_topic, "/external_camera/image_raw")],
+        parameters=[{"use_sim_time": use_sim_time, "qos": "default"}],
+        output="screen",
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument("use_sim_time", default_value=use_sim_time, description="Use sim time"),
         SetEnvironmentVariable("GZ_SIM_RESOURCE_PATH", _gz_sim_resource_path()),
         gz_sim_launch,
         clock_bridge,
         wrist_camera_image_bridge,
+        external_camera_image_bridge,
         node_robot_state_publisher,
         gz_spawn_entity,
         RegisterEventHandler(
