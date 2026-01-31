@@ -27,6 +27,7 @@ RUN apt-get update && apt-get upgrade -y \
     ros-jazzy-gz-ros2-control-demos \
     ros-jazzy-ros-gz \
     ros-jazzy-ros-gz-image \
+    ros-jazzy-cv-bridge \
     ros-jazzy-xacro \
     ros-jazzy-robot-state-publisher \
     ros-jazzy-joint-state-publisher \
@@ -37,6 +38,7 @@ RUN apt-get update && apt-get upgrade -y \
     python3-colcon-common-extensions \
     python3-rosdep \
     python3-vcstool \
+    python3-opencv \
     git \
     mesa-utils \
     libgl1-mesa-dri \
