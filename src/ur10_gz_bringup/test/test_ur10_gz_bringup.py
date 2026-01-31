@@ -30,6 +30,7 @@ EXPECTED_JOINT_NAMES = [
     "wrist_1_joint",
     "wrist_2_joint",
     "wrist_3_joint",
+    "robotiq_85_left_knuckle_joint",
 ]
 JOINT_STATES_TIMEOUT = 60.0
 CAMERA_TIMEOUT = 30.0
@@ -80,7 +81,7 @@ class TestUr10GzBringup(unittest.TestCase):
         self.node.destroy_node()
 
     def test_robot_spawns(self, proc_output):
-        """Check that /joint_states is published with all six UR10 joints."""
+        """Check that /joint_states is published with UR10 arm and Robotiq gripper joints."""
         msgs = []
 
         def cb(msg):

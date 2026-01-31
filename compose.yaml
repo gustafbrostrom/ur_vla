@@ -22,5 +22,8 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       # Mount so test logs can be written here and read on the host
       - ./test_logs:/home/ros/ws/test_logs
+      # Mount only our packages so vendored src/ros2_robotiq_gripper stays (install symlinks point there)
+      - ./src/ur10_description:/home/ros/ws/src/ur10_description:ro
+      - ./src/ur10_gz_bringup:/home/ros/ws/src/ur10_gz_bringup:ro
     network_mode: host
     command: ["ros2", "launch", "ur10_gz_bringup", "ur10_gz_bringup.launch.py"]

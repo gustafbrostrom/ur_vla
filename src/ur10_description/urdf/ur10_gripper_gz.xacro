@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<!-- Simple parallel gripper for UR10 in Gazebo Harmonic.
+     Attached to tool0; one prismatic joint (gripper_joint) 0 = closed, 0.04 m = open.
+     Call: xacro:ur10_gripper_gz tf_prefix:="$(arg tf_prefix)" -->
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:macro name="ur10_gripper_gz" params="tf_prefix">
+
+  <!-- Gripper base: fixed to tool0, 5 cm in front (clear of wrist camera at 2 cm) -->
+  <link name="${tf_prefix}gripper_base_link">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
+    </inertial>
+    <visual name="gripper_base_visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.03 0.02 0.02"/>
+      </geometry>
+      <material name="gripper_grey">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision name="gripper_base_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.03 0.02 0.02"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Fixed joint: tool0 -> gripper_base_link -->
+  <joint name="${tf_prefix}tool0_gripper_base_joint" type="fixed">
+    <parent link="${tf_prefix}tool0"/>
+    <child link="${tf_prefix}gripper_base_link"/>
+    <origin xyz="0 0 0.05" rpy="0 0 0"/>
+  </joint>
+  <gazebo reference="${tf_prefix}tool0_gripper_base_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <!-- Moving finger link (prismatic child); represents one side of the parallel jaw -->
+  <link name="${tf_prefix}gripper_finger_link">
+    <inertial>
+      <mass value="0.02"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+    <visual name="gripper_finger_visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.02"/>
+      </geometry>
+      <material name="gripper_grey"/>
+    </visual>
+    <collision name="gripper_finger_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.02"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Prismatic joint: 0 = closed, 0.04 m = open; axis Y (opening direction) -->
+  <joint name="${tf_prefix}gripper_joint" type="prismatic">
+    <parent link="${tf_prefix}gripper_base_link"/>
+    <child link="${tf_prefix}gripper_finger_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="0.04" effort="50" velocity="0.5"/>
+  </joint>
+
+  </xacro:macro>
+</robot>

@@ -30,11 +30,13 @@ RUN apt-get update && apt-get upgrade -y \
     ros-jazzy-xacro \
     ros-jazzy-robot-state-publisher \
     ros-jazzy-joint-state-publisher \
+    ros-jazzy-gripper-controllers \
     ros-jazzy-launch-testing \
     ros-jazzy-launch-testing-ament-cmake \
     ros-jazzy-ament-cmake-ros \
     python3-colcon-common-extensions \
     python3-rosdep \
+    python3-vcstool \
     git \
     mesa-utils \
     libgl1-mesa-dri \
@@ -47,8 +49,12 @@ RUN useradd -m -u 1001 -s /bin/bash ros \
     && mkdir -p /home/ros/ws/src \
     && chown -R ros:ros /home/ros
 
-# Copy workspace source (will be overwritten by compose mount or build context)
-COPY --chown=ros:ros src /home/ros/ws/src
+# Fetch vendored dependency (ros2_robotiq_gripper) then copy workspace source
+COPY ur_vla.repos /home/ros/ws/ur_vla.repos
+WORKDIR /home/ros/ws
+RUN vcs import src < ur_vla.repos
+COPY --chown=ros:ros src/ur10_description /home/ros/ws/src/ur10_description
+COPY --chown=ros:ros src/ur10_gz_bringup /home/ros/ws/src/ur10_gz_bringup
 
 # Entrypoint script (copied into container root for clarity)
 COPY docker/entrypoint.sh /docker/entrypoint.sh
@@ -57,10 +63,13 @@ RUN chmod +x /docker/entrypoint.sh
 WORKDIR /home/ros/ws
 
 # Build workspace (run as root for rosdep apt; then chown for ros)
+# rosdep init creates sources list (idempotent with || true)
+# Only build robotiq_description + our packages; skip robotiq_driver/robotiq_controllers (need serial, etc.)
 RUN . /opt/ros/jazzy/setup.sh \
+    && rosdep init || true \
     && rosdep update \
     && rosdep install -r -y --from-paths src --ignore-src || true \
-    && colcon build --symlink-install \
+    && colcon build --symlink-install --packages-select robotiq_description ur10_description ur10_gz_bringup \
     && chown -R ros:ros /home/ros
 
 USER ros
