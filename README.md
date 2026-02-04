@@ -1,6 +1,6 @@
 # UR10 Simulation (Stage 1): ROS 2 Jazzy + Gazebo Harmonic
 
-Dockerized UR10 simulation using ROS 2 Jazzy and Gazebo Harmonic with **gz_ros2_control**. One command starts Gazebo, spawns a UR10 in a simple world (ground + light), and runs `joint_state_broadcaster`, `joint_trajectory_controller`, and `gripper_action_controller`. A wrist camera and a **Robotiq 2F-85** gripper (PickNik model) on the tool flange are included. No ROS or Gazebo on the host required; GUI over X11.
+Dockerized UR10 simulation using ROS 2 Jazzy and Gazebo Harmonic with **gz_ros2_control**. One command starts Gazebo, spawns a UR10 in a simple world (ground + light), and runs `joint_state_broadcaster` and `joint_trajectory_controller`. A wrist camera on the tool flange is included. No ROS or Gazebo on the host required; GUI over X11.
 
 ## Requirements
 
@@ -11,8 +11,6 @@ Dockerized UR10 simulation using ROS 2 Jazzy and Gazebo Harmonic with **gz_ros2_
 ## Quick start
 
 ### Build
-
-The image fetches the vendored **ros2_robotiq_gripper** repo (vcstool) and builds it with the workspace. First build may take longer while cloning and building `robotiq_description`.
 
 ```bash
 docker compose build
@@ -42,7 +40,7 @@ docker build -t ur10_gz:latest -f docker/Dockerfile .
    docker compose up
    ```
 
-   Gazebo Harmonic should open with the UR10 in a simple world. After the robot is spawned, `joint_state_broadcaster`, `joint_trajectory_controller`, and `gripper_action_controller` are loaded automatically.
+   Gazebo Harmonic should open with the UR10 in a simple world. After the robot is spawned, `joint_state_broadcaster` and `joint_trajectory_controller` are loaded automatically.
 
    If you see **`qt.qpa.xcb: could not connect to display :0`** or **Could not load the Qt platform plugin "xcb"**, the container cannot reach your X server. Either run `xhost +local:docker` (and ensure `DISPLAY` is set), or run headless (below).
 
@@ -77,34 +75,6 @@ docker compose run --rm ur10_sim bash -c "
 ```
 
 Or exec into the running container and run the same `ros2 action send_goal` after sourcing the workspace.
-
-### Robotiq 2F-85 gripper (open/close)
-
-The sim includes a **Robotiq 2F-85** gripper on `tool0` (PickNik model). The driven joint is `robotiq_85_left_knuckle_joint` (revolute, open ≈ 0 rad, closed ≈ 0.7929 rad). After the sim is up and `gripper_action_controller` is loaded, open and close via the `GripperCommand` action:
-
-**Open (position 0.0 rad):**
-```bash
-ros2 action send_goal /gripper_action_controller/gripper_cmd control_msgs/action/GripperCommand "{command: {position: 0.0, max_effort: 0.0}}"
-```
-
-**Close (position 0.7929 rad):**
-```bash
-ros2 action send_goal /gripper_action_controller/gripper_cmd control_msgs/action/GripperCommand "{command: {position: 0.7929, max_effort: 0.0}}"
-```
-
-**Demo script (inside container):**
-```bash
-./scripts/demo_gripper.sh open    # or close, or both
-```
-
-From the host (with sim running):
-```bash
-docker compose exec ur10_sim bash -c ". /opt/ros/jazzy/setup.bash && . /home/ros/ws/install/setup.bash && ros2 action send_goal /gripper_action_controller/gripper_cmd control_msgs/action/GripperCommand \"{command: {position: 0.0, max_effort: 0.0}}\""
-```
-
-**Verify gripper joint state:** `ros2 topic echo /joint_states --once` — confirm `robotiq_85_left_knuckle_joint` is present; its `position` should change after open/close (≈ 0 open, ≈ 0.7929 closed).
-
-**TF (gripper):** `tool0` → `ur_to_robotiq_link` → `robotiq_85_adapter_mount` → `robotiq_85_base_link`.
 
 ## Testing
 
@@ -164,12 +134,11 @@ To run tests without rebuilding (e.g. after changing only test code), mount the 
 │   ├── Dockerfile
 │   └── entrypoint.sh
 ├── compose.yaml
-├── ur_vla.repos              # vcstool: fetches ros2_robotiq_gripper into src/
+├── ur_vla.repos              # vcstool repos (optional; empty if no vendored deps)
 ├── src/
-│   ├── ur10_description/     # UR10 URDF/xacro + gz_ros2_control + Robotiq 2F-85
-│   └── ur10_gz_bringup/     # Launch, controllers.yaml, world
+│   ├── ur10_description/     # UR10 URDF/xacro + gz_ros2_control + wrist camera
+│   └── ur10_gz_bringup/      # Launch, controllers.yaml, world
 ├── scripts/
-│   ├── demo_gripper.sh      # Open/close gripper demo
 │   └── run_tests_with_logs.sh
 ├── README.md
 ```
@@ -201,20 +170,13 @@ If the gz_ros2_control plugin fails to load or the robot does not move:
    - `filename="libgz_ros2_control-system.so"`
    - `name="gz_ros2_control::GazeboSimROS2ControlPlugin"`
 2. **Controller YAML path:** The plugin’s `<parameters>` must point to the installed `controllers.yaml` (e.g. `$(find ur10_gz_bringup)/config/controllers.yaml`). After `colcon build`, this path is valid inside the container.
-3. **Joint names:** The `<ros2_control>` joint names must match `controllers.yaml` and the URDF: `shoulder_pan_joint`, `shoulder_lift_joint`, `elbow_joint`, `wrist_1_joint`, `wrist_2_joint`, `wrist_3_joint`, `robotiq_85_left_knuckle_joint`.
-4. **Spawn order:** Controllers are spawned in order: `joint_state_broadcaster`, then `joint_trajectory_controller`, then `gripper_action_controller`. If a controller is not active, check that the spawners ran (see launch logs).
+3. **Joint names:** The `<ros2_control>` joint names must match `controllers.yaml` and the URDF: `shoulder_pan_joint`, `shoulder_lift_joint`, `elbow_joint`, `wrist_1_joint`, `wrist_2_joint`, `wrist_3_joint`.
+4. **Spawn order:** Controllers are spawned in order: `joint_state_broadcaster`, then `joint_trajectory_controller`. If a controller is not active, check that the spawners ran (see launch logs).
 
 ### Gazebo not starting / nothing spawned (MESA, DRM, iris driver)
 
 - **Cause:** In Docker (or without GPU passthrough), the Gazebo server may fail to use the GPU and never advertise `/world/default/create`, so the robot never spawns. You may see: `MESA: error: Failed to query drm device`, `failed to load driver: iris`, and `Waiting for service [/world/default/create]`.
 - **Fix:** The compose file sets `LIBGL_ALWAYS_SOFTWARE=1` so Gazebo uses software OpenGL and can start without a real GPU. If you run the launch outside Docker and hit similar errors, set `export LIBGL_ALWAYS_SOFTWARE=1` before launching.
-
-### Gripper / mimic joints
-
-- **Gripper does not move or shows errors:** Ensure `robotiq_85_left_knuckle_joint` is the only gripper joint with a command interface in `<ros2_control>`. Joint names in URDF and `controllers.yaml` must match.
-- **Mimic joints:** The Robotiq 2F-85 has one driven joint (`robotiq_85_left_knuckle_joint`); the right knuckle and others are mimic. In gz_ros2_control, mimic joints must **not** have command interfaces; only state interfaces are allowed. Do not add `<command_interface>` for mimic joints.
-- **“Physics engine does not support mimic constraints”:** If Gazebo logs this ([gz_ros2_control issue #340](https://github.com/ros-controls/gz_ros2_control/issues/340)), the physics engine in use does not enforce mimic constraints, so only the left knuckle is driven and the right finger may not follow. **Options:** (1) Switch the world to a physics engine that supports mimic constraints, if available for Gazebo Harmonic. (2) **Fallback:** Add `robotiq_85_right_knuckle_joint` to `<ros2_control>` with a position command interface and drive both joints in software (e.g. a small node that publishes `-left_position` to the right joint, or use `joint_trajectory_controller` with both joints and mirrored setpoints).
-- **Action never succeeds:** Try `allow_stalling: true` in `gripper_action_controller` (in `controllers.yaml`) and/or increase `goal_tolerance`. Confirm joint range (0–0.7929 rad) matches the commanded position.
 
 ## Wrist Camera
 

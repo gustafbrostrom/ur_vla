@@ -4,7 +4,7 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, RegisterEventHandler, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution, TextSubstitution
@@ -12,18 +12,6 @@ from launch.substitutions import Command, FindExecutable, LaunchConfiguration, P
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
-
-
-def _gz_sim_resource_path():
-    """Prepend robotiq_description share parent to GZ_SIM_RESOURCE_PATH so Gazebo finds model://robotiq_description/ meshes."""
-    try:
-        from ament_index_python.packages import get_package_share_directory
-        robotiq_share = get_package_share_directory("robotiq_description")
-        parent = os.path.dirname(robotiq_share)
-        current = os.environ.get("GZ_SIM_RESOURCE_PATH", "")
-        return parent + (":" + current if current else "")
-    except Exception:
-        return os.environ.get("GZ_SIM_RESOURCE_PATH", "")
 
 
 def generate_launch_description():
@@ -100,11 +88,6 @@ def generate_launch_description():
         executable="spawner",
         arguments=["joint_trajectory_controller", "--param-file", robot_controllers],
     )
-    gripper_action_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["gripper_action_controller", "--param-file", robot_controllers],
-    )
 
     # Clock bridge and camera CameraInfo bridges (Gazebo -> ROS 2)
     gz_camera_info = "/model/ur10/link/wrist_camera_link/sensor/wrist_camera/camera_info"
@@ -152,7 +135,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument("use_sim_time", default_value=use_sim_time, description="Use sim time"),
-        SetEnvironmentVariable("GZ_SIM_RESOURCE_PATH", _gz_sim_resource_path()),
         gz_sim_launch,
         clock_bridge,
         wrist_camera_image_bridge,
@@ -169,12 +151,6 @@ def generate_launch_description():
             event_handler=OnProcessExit(
                 target_action=joint_state_broadcaster_spawner,
                 on_exit=[joint_trajectory_controller_spawner],
-            )
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=joint_trajectory_controller_spawner,
-                on_exit=[gripper_action_controller_spawner],
             )
         ),
     ])

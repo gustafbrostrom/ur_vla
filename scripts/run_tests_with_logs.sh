@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")/.."
 mkdir -p test_logs
 chmod 777 test_logs
-# Mount only our packages so vendored src/ros2_robotiq_gripper stays (install symlinks point there)
+# Mount our packages for live edits (install symlinks point there)
 docker compose run --rm \
   -v "$(pwd)/src/ur10_description:/home/ros/ws/src/ur10_description:ro" \
   -v "$(pwd)/src/ur10_gz_bringup:/home/ros/ws/src/ur10_gz_bringup:ro" \

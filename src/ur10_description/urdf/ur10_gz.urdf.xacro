@@ -38,14 +38,6 @@
   <xacro:include filename="$(find ur10_description)/urdf/ur10_wrist_camera_gz.xacro"/>
   <xacro:ur10_wrist_camera_gz tf_prefix="$(arg tf_prefix)"/>
 
-  <!-- Robotiq 2F-85 gripper on tool0: UR adapter + gripper macro (control in ur10_ros2_control_gz.xacro) -->
-  <xacro:include filename="$(find robotiq_description)/urdf/ur_to_robotiq_adapter.urdf.xacro"/>
-  <xacro:include filename="$(find robotiq_description)/urdf/robotiq_2f_85_macro.urdf.xacro"/>
-  <xacro:ur_to_robotiq prefix="$(arg tf_prefix)" parent="$(arg tf_prefix)tool0" child="$(arg tf_prefix)robotiq_85_adapter_mount"/>
-  <xacro:robotiq_gripper name="RobotiqGripper" prefix="$(arg tf_prefix)" parent="$(arg tf_prefix)robotiq_85_adapter_mount" sim_gazebo="true" include_ros2_control="false">
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </xacro:robotiq_gripper>
-
   <!-- Pass controllers path via property (xacro:include ignores child elements) -->
   <xacro:property name="controllers_file" value="$(find ur10_gz_bringup)/config/controllers.yaml"/>
   <xacro:include filename="$(find ur10_description)/urdf/ur10_ros2_control_gz.xacro"/>

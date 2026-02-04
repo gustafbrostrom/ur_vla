@@ -12,7 +12,6 @@
   <depend>ur_description</depend>
   <depend>ros2_control</depend>
   <depend>gz_ros2_control</depend>
-  <depend>robotiq_description</depend>
   <export>
     <build_type>ament_cmake</build_type>
   </export>

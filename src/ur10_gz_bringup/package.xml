@@ -14,7 +14,6 @@
   <depend>controller_manager</depend>
   <depend>joint_state_broadcaster</depend>
   <depend>joint_trajectory_controller</depend>
-  <depend>gripper_controllers</depend>
   <depend>xacro</depend>
   <depend>ur10_description</depend>
   <depend>launch</depend>

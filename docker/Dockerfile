@@ -31,7 +31,6 @@ RUN apt-get update && apt-get upgrade -y \
     ros-jazzy-xacro \
     ros-jazzy-robot-state-publisher \
     ros-jazzy-joint-state-publisher \
-    ros-jazzy-gripper-controllers \
     ros-jazzy-launch-testing \
     ros-jazzy-launch-testing-ament-cmake \
     ros-jazzy-ament-cmake-ros \
@@ -51,10 +50,8 @@ RUN useradd -m -u 1001 -s /bin/bash ros \
     && mkdir -p /home/ros/ws/src \
     && chown -R ros:ros /home/ros
 
-# Fetch vendored dependency (ros2_robotiq_gripper) then copy workspace source
-COPY ur_vla.repos /home/ros/ws/ur_vla.repos
+# Copy workspace source
 WORKDIR /home/ros/ws
-RUN vcs import src < ur_vla.repos
 COPY --chown=ros:ros src/ur10_description /home/ros/ws/src/ur10_description
 COPY --chown=ros:ros src/ur10_gz_bringup /home/ros/ws/src/ur10_gz_bringup
 
@@ -66,12 +63,12 @@ WORKDIR /home/ros/ws
 
 # Build workspace (run as root for rosdep apt; then chown for ros)
 # rosdep init creates sources list (idempotent with || true)
-# Only build robotiq_description + our packages; skip robotiq_driver/robotiq_controllers (need serial, etc.)
+# Build workspace packages
 RUN . /opt/ros/jazzy/setup.sh \
     && rosdep init || true \
     && rosdep update \
     && rosdep install -r -y --from-paths src --ignore-src || true \
-    && colcon build --symlink-install --packages-select robotiq_description ur10_description ur10_gz_bringup \
+    && colcon build --symlink-install --packages-select ur10_description ur10_gz_bringup \
     && chown -R ros:ros /home/ros
 
 USER ros
